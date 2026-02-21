@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: Dima Burmistrov
+      changes:
+        - createTable:
+            tableName: auth_users
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password_hash
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+
+  - changeSet:
+      id: 2
+      author: Dima Burmistrov
+      changes:
+        - createTable:
+            tableName: auth_user_roles
+            columns:
+              - column:
+                  name: user_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: auth_user_roles
+            columnNames: user_id, role
+            constraintName: pk_auth_user_roles
+
+        - addForeignKeyConstraint:
+            baseTableName: auth_user_roles
+            baseColumnNames: user_id
+            referencedTableName: auth_users
+            referencedColumnNames: id
+            constraintName: fk_auth_user_roles_user
+            onDelete: CASCADE
+

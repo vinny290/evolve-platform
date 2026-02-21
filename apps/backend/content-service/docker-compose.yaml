@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: content-service-db
+    restart: always
+    environment:
+      POSTGRES_DB: content_service_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - content:/var/lib/postgresql/data
+    networks:
+      - content-network
+
+  content-service:
+    image: content-service:0.0.1
+    container_name: content-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/content_service_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    networks:
+      - content-network
+
+  minio:
+    image: quay.io/minio/minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - content-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "9090:80"
+    depends_on:
+      - postgres
+    networks:
+      - content-network
+
+networks:
+  content-network:
+
+volumes:
+  content:
+  minio-data:

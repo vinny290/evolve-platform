@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: Dima Burmistrov
+      changes:
+        - createTable:
+          tableName: courses
+          columns:
+            - column:
+                name: id
+                type: UUID
+                constraints:
+                  primaryKey: true
+                  nullable: false
+            - column:
+                name: title
+                type: VARCHAR(100)
+                constraints:
+                  nullable: false
+            - column:
+                name: description
+                type: VARCHAR(2000)
+            - column:
+                name: image_url
+                type: VARCHAR(255)
+            - column:
+                name: level_education
+                type: VARCHAR(50)
+                constraints:
+                  nullable: false
+            - column:
+                name: sphere
+                type: VARCHAR(50)
+            - column:
+                name: created_at
+                type: TIMESTAMP
+                defaultValueComputed: CURRENT_TIMESTAMP
+            - column:
+                name: updated_at
+                type: TIMESTAMP
+                defaultValueComputed: CURRENT_TIMESTAMP
+            - column:
+                name: version
+                type: BIGINT
+            - column:
+                name: views
+                type: BIGINT
+                defaultValue: 0
+            - column:
+                name: likes
+                type: BIGINT
+                defaultValue: 0
+            - column:
+                name: ratings_count
+                type: BIGINT
+                defaultValue: 0
+            - column:
+                name: average_score
+                type: NUMERIC(5, 2)
+                defaultValue: 0
+            - column:
+                name: popularity
+                type: NUMERIC(10, 4)
+                defaultValue: 0

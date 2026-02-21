@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    # Используем имя контейнера вместо localhost
+    url: jdbc:postgresql://users-postgres:5432/user_service_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    contexts: development
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      enable-auto-commit: false
+      group-id: users-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+minio:
+  url: http://minio:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket: users-images
+
+logging:
+  level:
+    org.springframework.kafka: DEBUG

@@ -1,0 +1,40 @@
+server:
+  port: 7070
+
+spring:
+  datasource:
+    # Используем имя контейнера вместо localhost
+    url: jdbc:postgresql://auth-postgres:5432/auth_service_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    contexts: development
+  kafka:
+    # Подключаемся к общему Kafka
+    bootstrap-servers: kafka:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+users-service:
+  url: http://users-service:8080
+
+jwt:
+  access:
+    secret: "56554d61f07509af957f4d961815e95e42465dc7149e20c43ed7045a2fe55fdd"
+    expiration: 900000
+  refresh:
+    secret: "709ea691fb52372096e791610f2d59fe2a28bd70272ee632d5fe068190fd1379"
+    expiration: 2592000000
+
+logging:
+  level:
+    org.springframework.security: DEBUG

@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/content_service_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    contexts: development
+
+jwt:
+  access:
+    secret: "56554d61f07509af957f4d961815e95e42465dc7149e20c43ed7045a2fe55fdd"
+
+minio:
+  url: http://minio:9000
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket: courses-images

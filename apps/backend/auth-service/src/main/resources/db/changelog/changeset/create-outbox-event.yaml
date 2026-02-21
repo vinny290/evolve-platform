@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: 4
+      author: Dima Burmistrov
+      changes:
+        - createTable:
+            tableName: outbox_event
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: aggregate_type
+                  type: VARCHAR(100)
+              - column:
+                  name: aggregate_id
+                  type: UUID
+              - column:
+                  name: event_type
+                  type: VARCHAR(100)
+              - column:
+                  name: payload
+                  type: JSONB
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
