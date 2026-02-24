@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { authStore } from "../store/authStore";
+import { authStore } from "../stores/authStore";
 
 const DashboardPage = observer(() => {
   return (

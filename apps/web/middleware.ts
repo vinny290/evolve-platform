@@ -1,22 +1,24 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export const middleware = (req: NextRequest) => {
-  const token = req.cookies.get("accessToken")?.value;
+const PUBLIC_PATHS = ["/login", "/register"];
 
-  const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
+export function middleware(request: NextRequest) {
+  const refreshToken = request.cookies.get("refreshToken");
+  const { pathname } = request.nextUrl;
 
-  if (!token && !isAuthPage) {
-    return NextResponse.redirect(new URL("/auth", req.url));
+  const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
+
+  if (!refreshToken && !isPublic) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (token && isAuthPage) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  if (refreshToken && isPublic) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
-};
+}
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/:path*"],
+  matcher: ["/login", "/register", "/dashboard", "/profile", "/admin"],
 };

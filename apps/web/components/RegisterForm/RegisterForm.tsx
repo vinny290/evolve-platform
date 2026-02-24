@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./RegisterForm.module.css";
-import { authStore } from "../../app/store/authStore";
+import { authStore } from "../../app/stores/authStore";
 
 const RegisterForm = ({ submitText }: { submitText: string }) => {
   const [email, setEmail] = useState("");
