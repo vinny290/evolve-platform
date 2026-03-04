@@ -3,23 +3,23 @@
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../hooks/useAuth";
+import { useRootStore } from "app/stores";
 
 export default observer(function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const auth = useAuth();
+  const { authStore } = useRootStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!auth.isLoading && auth.isAuthenticated) {
-      router.replace("/dashboard");
+    if (!authStore.isLoading && authStore.isAuthenticated) {
+      router.replace("/auth");
     }
-  }, [auth, router]);
+  }, [authStore, router]);
 
-  if (auth.isLoading) return <div>Загрузка...</div>;
+  if (authStore.isLoading) return <div>Загрузка...</div>;
 
   return <>{children}</>;
 });

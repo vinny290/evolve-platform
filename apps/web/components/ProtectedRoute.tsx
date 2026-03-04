@@ -3,7 +3,7 @@
 import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useRootStore } from "../app/stores";
 
 interface Props {
   children: React.ReactNode;
@@ -11,28 +11,37 @@ interface Props {
 }
 
 export const ProtectedRoute = observer(({ children, requiredRoles }: Props) => {
-  const auth = useAuth();
+  const { authStore, userStore } = useRootStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!auth.isLoading) {
-      if (!auth.isAuthenticated) {
-        router.replace("/login");
-      } else if (
+    if (!authStore.isLoading) {
+      if (!authStore.isAuthenticated) {
+        router.replace("/auth");
+        return;
+      }
+
+      if (
         requiredRoles &&
-        !requiredRoles.some((role) => auth.roles.includes(role))
+        !requiredRoles.some((role) => userStore.roles.includes(role))
       ) {
-        router.replace("/dashboard");
+        router.replace("/auth");
       }
     }
-  }, [auth, router, requiredRoles]);
+  }, [
+    authStore.isLoading,
+    authStore.isAuthenticated,
+    userStore.roles,
+    router,
+    requiredRoles,
+  ]);
 
-  if (auth.isLoading) return <div>Загрузка...</div>;
-  if (!auth.isAuthenticated) return null;
+  if (authStore.isLoading) return <div>Загрузка...</div>;
+  if (!authStore.isAuthenticated) return null;
 
   if (
     requiredRoles &&
-    !requiredRoles.some((role) => auth.roles.includes(role))
+    !requiredRoles.some((role) => userStore.roles.includes(role))
   ) {
     return <div>Нет доступа</div>;
   }

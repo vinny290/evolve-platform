@@ -1,19 +1,15 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL;
+const COURSE_URL = process.env.NEXT_PUBLIC_COURSE_URL;
+const USER_URL = process.env.NEXT_PUBLIC_USER_URL;
 
 export const API_ENDPOINTS = {
   auth: {
-    register: `${BASE_URL}/auth/register`,
-    login: `${BASE_URL}/auth/login`,
-    refresh: `${BASE_URL}/auth/refresh`,
+    register: `${AUTH_URL}/auth/register`,
+    login: `${AUTH_URL}/auth/login`,
+    refresh: `${AUTH_URL}/auth/refresh`,
   },
-  // Пример других модулей:
-  users: {
-    list: `${BASE_URL}/api/v1/users`,
-    profile: `${BASE_URL}/api/v1/users/profile`,
-  },
-  dashboard: {
-    stats: `${BASE_URL}/api/v1/dashboard/stats`,
-  },
+  course: `${COURSE_URL}/course`,
+  user: `${USER_URL}/users`,
 };
 
 export default API_ENDPOINTS;

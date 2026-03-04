@@ -2,17 +2,22 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { StoreProvider, useRootStore } from "./stores";
+import { rootStore, StoreProvider } from "./stores";
 import "./globals.css";
+import { ThemeProvider } from "components/theme-provider";
+import { Loader2 } from "lucide-react";
 
 const InitAuth = observer(({ children }: { children: React.ReactNode }) => {
-  const { authStore } = useRootStore();
-
   useEffect(() => {
-    authStore.initAuth?.(); // обязательно через store из useRootStore
-  }, [authStore]);
+    rootStore.init();
+  }, [rootStore]);
 
-  if (authStore.isLoading) return <div>Инициализация...</div>;
+  if (rootStore.authStore.isLoading)
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
 
   return <>{children}</>;
 });
@@ -26,7 +31,9 @@ export default function RootLayout({
     <html lang="ru">
       <body>
         <StoreProvider>
-          <InitAuth>{children}</InitAuth>
+          <InitAuth>
+            <ThemeProvider>{children}</ThemeProvider>
+          </InitAuth>
         </StoreProvider>
       </body>
     </html>

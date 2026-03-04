@@ -2,32 +2,36 @@
 import { useRouter } from "next/navigation";
 import { observer } from "mobx-react-lite";
 import styles from "./LoginForm.module.css";
-import { useLogin } from "../../hooks/useLogin";
+import { useState } from "react";
+import { rootStore } from "app/stores";
 
 const LoginForm = observer(() => {
   const router = useRouter();
-  const {
-    loginData,
-    handleInputLoginChange,
-    handleLogin,
-    errorLoginMessage,
-    isLoginLoading,
-  } = useLogin();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    const success = await handleLogin(e);
-    if (success) {
-      router.push("/dashboard");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await rootStore.login(email, password);
+      router.push("/courses");
+    } catch (e) {
+      console.error("Ошибка регистрации");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={onSubmit} className={styles.form}>
+    <form onSubmit={handleSubmit} className={styles.form}>
       <input
         name="email"
         type="email"
-        value={loginData.email}
-        onChange={handleInputLoginChange}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         className={styles.input}
         placeholder="Email"
       />
@@ -35,18 +39,14 @@ const LoginForm = observer(() => {
       <input
         name="password"
         type="password"
-        value={loginData.password}
-        onChange={handleInputLoginChange}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         className={styles.input}
         placeholder="Password"
       />
 
-      {errorLoginMessage && (
-        <div style={{ color: "red" }}>{errorLoginMessage}</div>
-      )}
-
-      <button type="submit" disabled={isLoginLoading} className={styles.button}>
-        {isLoginLoading ? "Загрузка..." : "Войти"}
+      <button type="submit" disabled={loading} className={styles.button}>
+        {loading ? "Загрузка..." : "Войти"}
       </button>
     </form>
   );

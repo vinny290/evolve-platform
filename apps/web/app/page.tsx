@@ -1,102 +1,98 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+"use client";
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
+import { observer } from "mobx-react-lite";
+import { useEffect } from "react";
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useRootStore } from "app/stores";
+import { ProtectedRoute } from "components/ProtectedRoute";
+
+const CoursesPage = observer(() => {
+  const { courseStore } = useRootStore();
+
+  useEffect(() => {
+    courseStore.fetchCourses();
+  }, []);
 
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
-
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <ProtectedRoute>
+      <div className="container mx-auto py-10 space-y-8">
+        {/* CREATE COURSE */}
+        <Card className="max-w-xl">
+          <CardHeader>
+            <CardTitle>Создать курс</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              placeholder="Название курса"
+              value={courseStore.title}
+              onChange={(e) => courseStore.setTitle(e.target.value)}
             />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.dev/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+
+            <Textarea
+              placeholder="Описание курса"
+              value={courseStore.description}
+              onChange={(e) => courseStore.setDescription(e.target.value)}
+            />
+
+            <Button
+              onClick={() => courseStore.createCourse()}
+              disabled={courseStore.isCreating}
+              className="w-full"
+            >
+              {courseStore.isCreating && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Создать
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* COURSES LIST */}
+        <div className="space-y-4">
+          {courseStore.isLoading && (
+            <div className="flex justify-center">
+              <Loader2 className="animate-spin" />
+            </div>
+          )}
+
+          {courseStore.error && (
+            <div className="text-red-500">{courseStore.error}</div>
+          )}
+
+          {courseStore.courses.map((course) => (
+            <Card key={course.id}>
+              <CardHeader>
+                <CardTitle>{course.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{course.description}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.dev?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.dev →
-        </a>
-      </footer>
-    </div>
+
+        {/* PAGINATION */}
+        {courseStore.totalPages > 1 && (
+          <div className="flex justify-center gap-2">
+            {Array.from({ length: courseStore.totalPages }).map((_, i) => (
+              <Button
+                key={i}
+                variant={i === courseStore.page ? "default" : "outline"}
+                onClick={() => courseStore.fetchCourses(i)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+    </ProtectedRoute>
   );
-}
+});
+
+export default CoursesPage;

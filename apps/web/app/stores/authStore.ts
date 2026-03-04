@@ -2,9 +2,7 @@
 
 import { makeAutoObservable, runInAction } from "mobx";
 import axios from "axios";
-import { jwtDecode } from "jwt-decode";
 import Cookies from "js-cookie";
-import { apiClient } from "../../lib/apiClient";
 import API_ENDPOINTS from "../../utils/apiEndpoints";
 
 interface JwtPayload {
@@ -23,8 +21,6 @@ export interface User {
 export class AuthStore {
   accessToken: string | null = null;
   refreshToken: string | null = null;
-  user: User | null = null;
-  roles: string[] = [];
   isLoading = true;
   error: string | null = null;
 
@@ -51,44 +47,22 @@ export class AuthStore {
     }
   }
 
-  setUser(user: User | null) {
-    this.user = user;
-    if (user) {
-      Cookies.set("user", JSON.stringify(user));
-    } else {
-      Cookies.remove("user");
-    }
-  }
-
   loadFromCookies() {
     const accessToken = Cookies.get("accessToken");
     const refreshToken = Cookies.get("refreshToken");
-    const user = Cookies.get("user");
 
     if (accessToken) this.accessToken = accessToken;
     if (refreshToken) this.refreshToken = refreshToken;
-    if (user) this.user = JSON.parse(user);
-  }
-
-  async loadUserFromToken(token: string) {
-    const decoded = jwtDecode<JwtPayload>(token);
-    const response = await apiClient.get(API_ENDPOINTS.users.profile);
-
-    runInAction(() => {
-      this.user = response.data;
-      this.roles = decoded.roles;
-      this.setUser(this.user);
-    });
   }
 
   async login(email: string, password: string) {
     this.error = null;
+
     try {
-      const response = await axios.post(
-        API_ENDPOINTS.auth.login,
-        { email, password },
-        { withCredentials: false }, // теперь куки сами ставим
-      );
+      const response = await axios.post(API_ENDPOINTS.auth.login, {
+        email,
+        password,
+      });
 
       const { accessToken, refreshToken } = response.data;
 
@@ -96,27 +70,36 @@ export class AuthStore {
         this.setAccessToken(accessToken);
         this.setRefreshToken(refreshToken);
       });
-
-      // await this.loadUserFromToken(accessToken);
     } catch (e: any) {
       runInAction(() => {
-        this.error = e.response?.data?.message || "Ошибка при входе в систему";
+        this.error = e.response?.data?.message || "Ошибка при регистрации";
       });
+
+      throw e;
     }
   }
 
   async register(email: string, password: string) {
     this.error = null;
+
     try {
-      await axios.post(
-        API_ENDPOINTS.auth.register,
-        { email, password },
-        { withCredentials: false },
-      );
+      const response = await axios.post(API_ENDPOINTS.auth.register, {
+        email,
+        password,
+      });
+
+      const { accessToken, refreshToken } = response.data;
+
+      runInAction(() => {
+        this.setAccessToken(accessToken);
+        this.setRefreshToken(refreshToken);
+      });
     } catch (e: any) {
       runInAction(() => {
         this.error = e.response?.data?.message || "Ошибка при регистрации";
       });
+
+      throw e;
     }
   }
 
@@ -129,12 +112,9 @@ export class AuthStore {
         { withCredentials: false },
       );
 
-      const newAccessToken = response.data.accessToken;
       runInAction(() => {
-        this.setAccessToken(newAccessToken);
+        this.setAccessToken(response.data.accessToken);
       });
-
-      await this.loadUserFromToken(newAccessToken);
     } catch {
       this.logoutLocal();
     }
@@ -147,30 +127,9 @@ export class AuthStore {
   logoutLocal() {
     this.setAccessToken(null);
     this.setRefreshToken(null);
-    this.setUser(null);
-    this.roles = [];
   }
 
   get isAuthenticated() {
     return !!this.accessToken;
-  }
-
-  hasRole(role: string) {
-    return this.roles.includes(role);
-  }
-
-  async initAuth() {
-    this.isLoading = true;
-    try {
-      const token = Cookies.get("accessToken");
-      if (token) {
-        this.setAccessToken(token);
-        await this.loadUserFromToken(token);
-      } else {
-        this.logoutLocal();
-      }
-    } finally {
-      this.isLoading = false;
-    }
   }
 }

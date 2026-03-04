@@ -5,40 +5,36 @@ import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
 
 import { Loader2 } from "lucide-react";
-import { useAuth } from "hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { useRootStore } from "app/stores";
 
 const AuthPage = observer(() => {
-  const auth = useAuth();
+  const { authStore, userStore } = useRootStore();
   const router = useRouter();
   const [tab, setTab] = useState<"login" | "register">("login");
-
-  // Login state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Register state
   const [name, setName] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await auth.login(email, password);
-    if (auth.isAuthenticated) router.push("/dashboard");
+    await authStore.login(email, password);
+    if (authStore.isAuthenticated) router.push("/courses");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    await auth.register(email, password, name);
-    if (!auth.error) setTab("login"); // после регистрации переключаем на логин
+    await authStore.register(email, password);
+    if (!authStore.error) setTab("login"); // после регистрации переключаем на логин
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-sidebar">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-center text-2xl">
@@ -77,17 +73,17 @@ const AuthPage = observer(() => {
                     required
                   />
                 </div>
-                {auth.error && (
+                {authStore.error && (
                   <Alert variant="destructive">
-                    <AlertDescription>{auth.error}</AlertDescription>
+                    <AlertDescription>{authStore.error}</AlertDescription>
                   </Alert>
                 )}
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={auth.isLoading}
+                  disabled={authStore.isLoading}
                 >
-                  {auth.isLoading ? (
+                  {authStore.isLoading ? (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
                   ) : null}
                   Войти
@@ -98,17 +94,6 @@ const AuthPage = observer(() => {
             {/* Register Form */}
             <TabsContent value="register">
               <form onSubmit={handleRegister} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Имя</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Ваше имя"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
                 <div>
                   <Label htmlFor="emailReg">Email</Label>
                   <Input
@@ -131,17 +116,17 @@ const AuthPage = observer(() => {
                     required
                   />
                 </div>
-                {auth.error && (
+                {authStore.error && (
                   <Alert variant="destructive">
-                    <AlertDescription>{auth.error}</AlertDescription>
+                    <AlertDescription>{authStore.error}</AlertDescription>
                   </Alert>
                 )}
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={auth.isLoading}
+                  disabled={authStore.isLoading}
                 >
-                  {auth.isLoading ? (
+                  {authStore.isLoading ? (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
                   ) : null}
                   Зарегистрироваться

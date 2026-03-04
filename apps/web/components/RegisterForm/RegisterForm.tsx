@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./RegisterForm.module.css";
-import { authStore } from "../../app/stores/authStore";
+import { rootStore } from "app/stores";
 
 const RegisterForm = ({ submitText }: { submitText: string }) => {
   const [email, setEmail] = useState("");
@@ -13,10 +13,10 @@ const RegisterForm = ({ submitText }: { submitText: string }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await authStore.register(email, password);
-      const success = await authStore.register(email, password);
-      if (success) router.push("/dashboard");
+      await rootStore.register(email, password);
+      router.push("/courses");
     } catch (e) {
       console.error("Ошибка регистрации");
     } finally {
@@ -42,10 +42,10 @@ const RegisterForm = ({ submitText }: { submitText: string }) => {
       />
       <button
         type="submit"
-        disabled={loading || authStore.loading}
+        disabled={loading || rootStore.authStore.isLoading}
         className={styles.button}
       >
-        {loading || authStore.loading ? "Загрузка..." : submitText}
+        {loading || rootStore.authStore.isLoading ? "Загрузка..." : submitText}
       </button>
     </form>
   );
