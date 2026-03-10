@@ -157,6 +157,7 @@ export class CourseStore {
         this.title = "";
         this.description = "";
         this.sphere = "";
+        this.isEditModalOpen = false;
       });
 
       await this.fetchCourses(this.page);

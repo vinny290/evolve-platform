@@ -14,23 +14,42 @@ import { Button } from "@/components/ui/button";
 import { useRootStore } from "app/stores";
 
 const AuthPage = observer(() => {
-  const { authStore, userStore } = useRootStore();
+  const rootStore = useRootStore();
+  const { authStore } = rootStore;
   const router = useRouter();
+
   const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
 
+  // Вход
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await authStore.login(email, password);
-    if (authStore.isAuthenticated) router.push("/courses");
+
+    try {
+      await rootStore.login(email, password);
+      if (authStore.isAuthenticated) {
+        router.replace("/courses");
+      }
+    } catch {
+      // ошибка уже в authStore.error
+    }
   };
 
+  // Регистрация + автовход
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    await authStore.register(email, password);
-    if (!authStore.error) setTab("login"); // после регистрации переключаем на логин
+
+    try {
+      await rootStore.register(email, password);
+
+      // Если сервер вернул 200 и токен установлен
+      if (authStore.isAuthenticated) {
+        router.replace("/courses"); // автовход
+      }
+    } catch {
+      // ошибка уже в authStore.error
+    }
   };
 
   return (
@@ -83,9 +102,9 @@ const AuthPage = observer(() => {
                   className="w-full"
                   disabled={authStore.isLoading}
                 >
-                  {authStore.isLoading ? (
+                  {authStore.isLoading && (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  ) : null}
+                  )}
                   Войти
                 </Button>
               </form>
@@ -126,9 +145,9 @@ const AuthPage = observer(() => {
                   className="w-full"
                   disabled={authStore.isLoading}
                 >
-                  {authStore.isLoading ? (
+                  {authStore.isLoading && (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  ) : null}
+                  )}
                   Зарегистрироваться
                 </Button>
               </form>

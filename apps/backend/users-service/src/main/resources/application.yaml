@@ -27,7 +27,8 @@ spring:
         spring.json.trusted.packages: "*"
 
 minio:
-  url: http://minio:9000
+  internal-url: http://minio:9000
+  public-url: http://localhost:9000
   access-key: minioadmin
   secret-key: minioadmin
   bucket: users-images

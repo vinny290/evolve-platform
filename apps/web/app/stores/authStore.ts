@@ -21,7 +21,7 @@ export interface User {
 export class AuthStore {
   accessToken: string | null = null;
   refreshToken: string | null = null;
-  isLoading = true;
+  isLoading = false;
   error: string | null = null;
 
   constructor() {
@@ -94,6 +94,8 @@ export class AuthStore {
         this.setAccessToken(accessToken);
         this.setRefreshToken(refreshToken);
       });
+
+      return response;
     } catch (e: any) {
       runInAction(() => {
         this.error = e.response?.data?.message || "Ошибка при регистрации";

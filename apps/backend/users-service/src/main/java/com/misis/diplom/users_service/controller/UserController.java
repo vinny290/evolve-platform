@@ -23,19 +23,19 @@ public class UserController {
     return userService.getUserById(userId);
   }
 
-  @PostMapping
-  public UserResponse createUser(@RequestBody @Valid UserRequest request/*,
-                                 @RequestPart("file")MultipartFile file*/) {
-    //return userService.createUser(request, file);
-    return userService.createUser(request);
+  @PostMapping(consumes = "multipart/form-data")
+  public UserResponse createUser(
+      @RequestPart("request") @Valid UserRequest request,
+      @RequestPart(value = "file", required = false) MultipartFile file) {
+    return userService.createUser(request, file);
   }
 
-  @PatchMapping("/{userId}")
-  public UserResponse updateUser(@PathVariable UUID userId,
-                                 @RequestBody UserRequest request/*,
-                                 @RequestPart("file") MultipartFile file*/) {
-    //return userService.updateUser(userId, request, file);
-    return userService.updateUser(userId, request);
+  @PatchMapping(value = "/{userId}", consumes = "multipart/form-data")
+  public UserResponse updateUser(
+      @PathVariable UUID userId,
+      @RequestPart("request") UserRequest request,
+      @RequestPart(value = "file", required = false) MultipartFile file) {
+    return userService.updateUser(userId, request, file);
   }
 
   @DeleteMapping("/{userId}")

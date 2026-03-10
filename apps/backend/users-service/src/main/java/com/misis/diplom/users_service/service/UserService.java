@@ -1,10 +1,10 @@
 package com.misis.diplom.users_service.service;
 
+import com.misis.diplom.users_service.dto.request.UserRequest;
+import com.misis.diplom.users_service.dto.response.UserResponse;
 import com.misis.diplom.users_service.exception.UserNotFoundException;
 import com.misis.diplom.users_service.mapper.UserMapper;
 import com.misis.diplom.users_service.model.User;
-import com.misis.diplom.users_service.dto.request.UserRequest;
-import com.misis.diplom.users_service.dto.response.UserResponse;
 import com.misis.diplom.users_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,60 +22,90 @@ public class UserService {
   private final MinioService minioService;
   private final UserAvatarProperties userAvatarProperties;
 
-  @Transactional
-  public UserResponse getUserById(UUID userId) {
-    User user = userRepository.findById(userId).orElseThrow(() ->
-      new UserNotFoundException(userId));
+@Transactional(readOnly = true)
+public UserResponse getUserById(UUID userId) {
 
-    return userMapper.toResponse(user);
-  }
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
 
-  @Transactional
-  public UserResponse createUser(UserRequest request/*, MultipartFile file*/) {
+String avatarUrl = (user.getAvatarFilename() != null)
+        ? minioService.getPresignedUrl(user.getAvatarFilename())
+        : userAvatarProperties.getDefaultAvatarUrl();
+
+return new UserResponse(
+    user.getFirstName(),
+    user.getLastName(),
+    user.getEmail(),
+    avatarUrl
+);
+}
+
+@Transactional
+public UserResponse createUser(UserRequest request, MultipartFile file) {
+
     User user = userMapper.toEntity(request);
 
-    String avatarUrl;
-
-    /* if (file != null && !file.isEmpty()) {
-      String objectName = minioService.uploadFile(file);
-      avatarUrl = minioService.getFileUrl(objectName);
-    } else {
-      avatarUrl = userAvatarProperties.getDefaultAvatarUrl();
+    if (file != null && !file.isEmpty()) {
+        String filename = minioService.uploadFile(file);
+        user.setAvatarFilename(filename);
     }
-
-    user.setAvatarUrl(avatarUrl); */
 
     User savedUser = userRepository.save(user);
 
-    return userMapper.toResponse(savedUser);
-  }
+String avatarUrl = savedUser.getAvatarFilename() != null
+        ? minioService.getPresignedUrl(savedUser.getAvatarFilename())
+        : userAvatarProperties.getDefaultAvatarUrl();
 
-  @Transactional
-  public UserResponse updateUser(UUID userId, UserRequest request/*, MultipartFile file*/) {
-    User updatedUser = userRepository.findById(userId).orElseThrow(() ->
-      new UserNotFoundException(userId));
+return new UserResponse(
+    savedUser.getFirstName(),
+    savedUser.getLastName(),
+    savedUser.getEmail(),
+    avatarUrl
+);
+}
 
-    /* if (file != null && !file.isEmpty()) {
-      String avatarUrl = minioService.getFileUrl(minioService.uploadFile(file));
-      updatedUser.setAvatarUrl(avatarUrl);
-    } */
-    if(request.firstName() != null) updatedUser.setFirstName(request.firstName());
-    if(request.lastName() != null) updatedUser.setLastName(request.lastName());
-    if(request.email() != null) updatedUser.setEmail(request.email());
+@Transactional
+public UserResponse updateUser(UUID userId, UserRequest request, MultipartFile file) {
 
-    return userMapper.toResponse(updatedUser);
-  }
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException(userId));
+
+    if (file != null && !file.isEmpty()) {
+        if (user.getAvatarFilename() != null) {
+            minioService.deleteFile(user.getAvatarFilename());
+        }
+        String filename = minioService.uploadFile(file);
+        user.setAvatarFilename(filename);
+    }
+
+    if (request.firstName() != null) user.setFirstName(request.firstName());
+    if (request.lastName() != null) user.setLastName(request.lastName());
+    if (request.email() != null) user.setEmail(request.email());
+
+    User savedUser = userRepository.save(user);
+
+String avatarUrl = savedUser.getAvatarFilename() != null
+        ? minioService.getPresignedUrl(savedUser.getAvatarFilename())
+        : userAvatarProperties.getDefaultAvatarUrl();
+
+return new UserResponse(
+    savedUser.getFirstName(),
+    savedUser.getLastName(),
+    savedUser.getEmail(),
+    avatarUrl
+);
+}
 
   @Transactional
   public void deleteUser(UUID userId) {
-    User deletedUser = userRepository.findById(userId).orElseThrow(() ->
-      new UserNotFoundException(userId));
 
-    /* if (deletedUser.getAvatarUrl() != null) {
-      String filename =minioService.extractFilename(deletedUser.getAvatarUrl());
-      minioService.deleteFile(filename);
-    } */
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
 
-    userRepository.deleteById(userId);
+    if (user.getAvatarFilename() != null) {
+      minioService.deleteFile(user.getAvatarFilename());
+    }
+
+    userRepository.delete(user);
   }
 }

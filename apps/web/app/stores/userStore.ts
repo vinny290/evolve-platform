@@ -2,6 +2,7 @@ import { apiClient } from "lib/apiClient";
 import { makeAutoObservable, runInAction } from "mobx";
 import API_ENDPOINTS from "utils/apiEndpoints";
 import { jwtDecode } from "jwt-decode";
+import { createRef } from "react";
 
 interface JwtPayload {
   sub: string;
@@ -28,6 +29,8 @@ export class UserStore {
 
   isLoading = false;
   error: string | null = null;
+  avatarFile: File | null = null;
+  fileInputRef = createRef<HTMLInputElement>();
 
   constructor() {
     makeAutoObservable(this);
@@ -43,6 +46,17 @@ export class UserStore {
       this.userId = decoded.sub;
       this.roles = decoded.roles;
     });
+  }
+
+  setAvatarFile(file: File | null) {
+    this.avatarFile = file;
+  }
+
+  get avatarPreview() {
+    if (this.avatarFile) {
+      return URL.createObjectURL(this.avatarFile);
+    }
+    return this.user?.avatarUrl;
   }
 
   /**
@@ -81,17 +95,33 @@ export class UserStore {
     this.error = null;
 
     try {
+      const formData = new FormData();
+
+      const request = {
+        firstName: this.firstName,
+        lastName: this.lastName,
+        email: this.email,
+      };
+
+      formData.append(
+        "request",
+        new Blob([JSON.stringify(request)], {
+          type: "application/json",
+        }),
+      );
+
+      if (this.avatarFile) {
+        formData.append("file", this.avatarFile);
+      }
+
       const response = await apiClient.patch<User>(
         `${API_ENDPOINTS.user}/${this.userId}`,
-        {
-          firstName: this.firstName,
-          lastName: this.lastName,
-          email: this.email,
-        },
+        formData,
       );
 
       runInAction(() => {
         this.user = response.data;
+        this.avatarFile = null;
         this.isEditModalOpen = false;
       });
     } catch (e: any) {

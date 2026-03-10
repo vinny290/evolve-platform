@@ -39,12 +39,13 @@ class RootStore {
   }
 
   async register(email: string, password: string) {
-    await this.authStore.register(email, password);
+    const response = await this.authStore.register(email, password);
 
-    if (this.authStore.accessToken) {
-      this.userStore.setUserFromToken(this.authStore.accessToken);
-      await this.userStore.loadUser();
+    if (response?.status === 200) {
+      await this.login(email, password);
     }
+
+    return response;
   }
 
   logout() {

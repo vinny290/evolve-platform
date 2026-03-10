@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 1
+      id: '4'
       author: Dima Burmistrov
       changes:
         - createTable:
@@ -25,7 +25,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: avatar_url
-                  type: VARCHAR(255)
+                  type: TEXT
               - column:
                   name: created_at
                   type: TIMESTAMP

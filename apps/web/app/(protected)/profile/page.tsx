@@ -1,7 +1,7 @@
 "use client";
 
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { rootStore } from "app/stores";
 
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,16 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export default observer(function ProfilePage() {
   const store = rootStore.userStore;
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     store.loadUser();
   }, []);
+
+  if (!isMounted) {
+    return <div />;
+  }
 
   if (!store.user) {
     return (
@@ -36,6 +42,10 @@ export default observer(function ProfilePage() {
     `${store.user.firstName?.[0] ?? ""}${store.user.lastName?.[0] ?? ""}` ||
     store.user.email[0].toUpperCase();
 
+  const avatarPreview = store.avatarFile
+    ? URL.createObjectURL(store.avatarFile)
+    : store.user.avatarUrl;
+
   return (
     <div className="max-w-3xl mx-auto py-12 px-6">
       <Card className="shadow-lg rounded-2xl border-muted">
@@ -44,16 +54,27 @@ export default observer(function ProfilePage() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <Avatar className="w-24 h-24">
-                <AvatarImage src={store.user.avatarUrl} />
+                <AvatarImage src={avatarPreview} />
                 <AvatarFallback className="text-lg font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
 
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={store.fileInputRef}
+                onChange={(e) =>
+                  store.setAvatarFile(e.target.files?.[0] || null)
+                }
+              />
+
               <Button
                 size="sm"
                 variant="secondary"
                 className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+                onClick={() => store.fileInputRef?.current?.click()}
               >
                 Изменить
               </Button>
@@ -63,7 +84,6 @@ export default observer(function ProfilePage() {
               <h1 className="text-2xl font-semibold">
                 {store.user.firstName} {store.user.lastName}
               </h1>
-
               <p className="text-muted-foreground">{store.user.email}</p>
             </div>
           </div>
@@ -86,11 +106,9 @@ export default observer(function ProfilePage() {
             </div>
           </div>
 
-          {/* Кнопка */}
+          {/* Кнопка редактирования */}
           <div className="flex justify-end">
-            <Button onClick={() => store.openEditModal()}>
-              Редактировать профиль
-            </Button>
+            <Button onClick={() => store.openEditModal()}>Редактировать</Button>
           </div>
         </CardContent>
       </Card>
@@ -107,19 +125,34 @@ export default observer(function ProfilePage() {
             <DialogTitle>Редактирование профиля</DialogTitle>
           </DialogHeader>
 
+          {/* Аватар в модалке */}
+          <div className="flex flex-col items-center gap-4 mt-4">
+            <Avatar className="w-24 h-24">
+              <AvatarImage src={avatarPreview} />
+              <AvatarFallback className="text-lg font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => store.fileInputRef?.current?.click()}
+            >
+              Изменить аватар
+            </Button>
+          </div>
+
           <div className="space-y-4 mt-4">
             <Input
               value={store.firstName}
               onChange={(e) => store.setFirstName(e.target.value)}
               placeholder="Имя"
             />
-
             <Input
               value={store.lastName}
               onChange={(e) => store.setLastName(e.target.value)}
               placeholder="Фамилия"
             />
-
             <Input
               value={store.email}
               onChange={(e) => store.setEmail(e.target.value)}
@@ -131,7 +164,7 @@ export default observer(function ProfilePage() {
             <div className="text-sm text-red-500 mt-3">{store.error}</div>
           )}
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="mt-6 flex justify-end gap-3">
             <Button
               variant="secondary"
               onClick={() => store.closeEditModal()}
@@ -141,7 +174,10 @@ export default observer(function ProfilePage() {
             </Button>
 
             <Button
-              onClick={() => store.updateUser()}
+              onClick={async () => {
+                await store.updateUser();
+                if (!store.error) store.closeEditModal();
+              }}
               disabled={store.isLoading}
             >
               {store.isLoading ? "Сохранение..." : "Сохранить"}
