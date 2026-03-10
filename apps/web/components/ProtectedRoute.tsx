@@ -2,7 +2,7 @@
 
 import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRootStore } from "../app/stores";
 
 interface Props {
@@ -13,14 +13,19 @@ interface Props {
 export const ProtectedRoute = observer(({ children, requiredRoles }: Props) => {
   const { authStore, userStore } = useRootStore();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
     if (!authStore.isLoading) {
       if (!authStore.isAuthenticated) {
         router.replace("/auth");
         return;
       }
-
       if (
         requiredRoles &&
         !requiredRoles.some((role) => userStore.roles.includes(role))
@@ -29,6 +34,7 @@ export const ProtectedRoute = observer(({ children, requiredRoles }: Props) => {
       }
     }
   }, [
+    isClient,
     authStore.isLoading,
     authStore.isAuthenticated,
     userStore.roles,
@@ -36,8 +42,13 @@ export const ProtectedRoute = observer(({ children, requiredRoles }: Props) => {
     requiredRoles,
   ]);
 
-  if (authStore.isLoading) return <div>Загрузка...</div>;
-  if (!authStore.isAuthenticated) return null;
+  if (!isClient || authStore.isLoading) {
+    return <div>Загрузка...</div>;
+  }
+
+  if (!authStore.isAuthenticated) {
+    return null;
+  }
 
   if (
     requiredRoles &&

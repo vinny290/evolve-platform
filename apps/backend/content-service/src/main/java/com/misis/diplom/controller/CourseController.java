@@ -27,8 +27,12 @@ public class CourseController {
   private final CourseService courseService;
 
   @GetMapping
-  public Page<CourseResponse> getAllCourses(@PageableDefault(size = 10, sort = "id") Pageable pageable) {
-    return courseService.getAllCourse(pageable);
+  public Page<CourseResponse> getAllCourses(
+      @PageableDefault(size = 10, sort = "id") Pageable pageable,
+      @AuthenticationPrincipal Jwt jwt) {
+
+    UUID userId = extractUserId(jwt);
+    return courseService.getAllCoursesWithLikes(pageable, userId);
   }
 
   @GetMapping("/{courseId}")
@@ -38,17 +42,24 @@ public class CourseController {
   }
 
   @PostMapping
-  public CourseResponse createCourse(@RequestBody @Valid CourseCreateRequest request/*,
-                                     @RequestPart("file") MultipartFile file*/) {
-    //return courseService.createCourse(request, file);
+  public CourseResponse createCourse(@RequestBody @Valid CourseCreateRequest request/*
+                                                                                     * ,
+                                                                                     * 
+                                                                                     * @RequestPart("file")
+                                                                                     * MultipartFile file
+                                                                                     */) {
+    // return courseService.createCourse(request, file);
     return courseService.createCourse(request);
   }
 
   @PatchMapping("/{courseId}")
   public CourseResponse updateCourse(@PathVariable UUID courseId,
-                                     @RequestBody @Valid CourseUpdateRequest request/*,
-                                     @RequestPart("file") MultipartFile file*/) {
-    //return courseService.updateCourse(courseId, request, file);
+      @RequestBody @Valid CourseUpdateRequest request/*
+                                                      * ,
+                                                      * 
+                                                      * @RequestPart("file") MultipartFile file
+                                                      */) {
+    // return courseService.updateCourse(courseId, request, file);
     return courseService.updateCourse(courseId, request);
   }
 
@@ -61,8 +72,8 @@ public class CourseController {
 
   @PatchMapping("/{courseId}/reviews")
   public ResponseEntity<Void> addReview(@PathVariable UUID courseId,
-                                        @AuthenticationPrincipal Jwt jwt,
-                                        @RequestBody @Valid AddReviewRequest request) {
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestBody @Valid AddReviewRequest request) {
     UUID userId = extractUserId(jwt);
     courseService.addReview(courseId, userId, request.score());
 

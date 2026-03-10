@@ -43,6 +43,8 @@ export default observer(function CoursePage() {
   }
 
   const course = store.course;
+  const isLiking = store.loadingLikes.get(course.id) || false;
+  console.log("liked: ", course.isLiked);
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-6">
@@ -52,8 +54,15 @@ export default observer(function CoursePage() {
           variant="ghost"
           className="absolute top-4 right-4 hover:scale-110 transition cursor-pointer"
           onClick={() => store.courseLike(course.id)}
+          disabled={isLiking}
         >
-          <Heart className="w-5 h-5" />
+          <Heart
+            className={`w-5 h-5 ${
+              course.isLiked
+                ? "fill-red-500 text-red-500"
+                : "fill-none text-gray-500"
+            }`}
+          />
         </Button>
 
         <CardHeader>
@@ -63,7 +72,6 @@ export default observer(function CoursePage() {
         <CardContent className="space-y-6">
           <div className="flex gap-3 flex-wrap">
             <Badge variant="secondary">{course.levelEducation}</Badge>
-
             {course.sphere && <Badge variant="outline">{course.sphere}</Badge>}
           </div>
 
@@ -76,12 +84,10 @@ export default observer(function CoursePage() {
               <p className="text-muted-foreground">Просмотры</p>
               <p className="font-semibold">{course.views ?? 0}</p>
             </div>
-
             <div>
               <p className="text-muted-foreground">Лайки</p>
               <p className="font-semibold">{course.likes ?? 0}</p>
             </div>
-
             <div>
               <p className="text-muted-foreground">Популярность</p>
               <p className="font-semibold">{course.popularity?.toFixed(2)}</p>
@@ -95,7 +101,6 @@ export default observer(function CoursePage() {
             >
               Редактировать
             </Button>
-
             <Button
               variant="destructive"
               className="cursor-pointer"

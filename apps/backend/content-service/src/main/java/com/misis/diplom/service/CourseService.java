@@ -17,6 +17,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import java.util.UUID;
 
@@ -33,48 +36,89 @@ public class CourseService {
   private final CourseStatisticsService courseStatisticsService;
 
   @Transactional(readOnly = true)
-  public Page<CourseResponse> getAllCourse(Pageable pageable) {
-    return courseRepository.findAll(pageable).map(courseMapper::toResponse);
+  public Page<CourseResponse> getAllCoursesWithLikes(Pageable pageable, UUID userId) {
+
+    Page<Course> courses = courseRepository.findAll(pageable);
+
+    List<UUID> courseIds = courses.stream().map(Course::getId).toList();
+    Map<UUID, UserCourseInteraction> interactions = userCourseInteractionRepository
+        .findAllByUserIdAndCourseIdIn(userId, courseIds)
+        .stream()
+        .collect(Collectors.toMap(UserCourseInteraction::getCourseId, ui -> ui));
+
+    return courses.map(course -> {
+      boolean isLiked = interactions.getOrDefault(course.getId(), new UserCourseInteraction()).isLiked();
+      CourseResponse base = courseMapper.toResponse(course);
+      return new CourseResponse(
+          base.id(),
+          base.title(),
+          base.description(),
+          base.imageUrl(),
+          base.levelEducation(),
+          base.sphere(),
+          base.views(),
+          base.likes(),
+          base.ratingsCount(),
+          base.averageScore(),
+          base.popularity(),
+          isLiked);
+    });
   }
 
   @Transactional
   public CourseResponse getCourseById(UUID courseId, UUID userId) {
 
     Course course = courseRepository.findById(courseId)
-      .orElseThrow(() -> new CourseNotFoundException(courseId));
+        .orElseThrow(() -> new CourseNotFoundException(courseId));
 
     UserCourseInteraction interaction = userCourseInteractionRepository
-      .findByUserIdAndCourseId(userId, courseId).orElseGet(() -> {
-        UserCourseInteraction i = new UserCourseInteraction();
-        i.setUserId(userId);
-        i.setCourseId(courseId);
-        return userCourseInteractionRepository.save(i);
-      });
+        .findByUserIdAndCourseId(userId, courseId).orElseGet(() -> {
+          UserCourseInteraction i = new UserCourseInteraction();
+          i.setUserId(userId);
+          i.setCourseId(courseId);
+          return userCourseInteractionRepository.save(i);
+        });
 
     if (!interaction.isViewed()) {
       interaction.setViewed(true);
     }
 
     courseStatisticsService.updateStatistics(course);
-    recalculatePopularity(course);
+    // recalculatePopularity(course);
 
-    return courseMapper.toResponse(course);
+    CourseResponse response = courseMapper.toResponse(course);
+
+    return new CourseResponse(
+        response.id(),
+        response.title(),
+        response.description(),
+        response.imageUrl(),
+        response.levelEducation(),
+        response.sphere(),
+        response.views(),
+        response.likes(),
+        response.ratingsCount(),
+        response.averageScore(),
+        response.popularity(),
+        interaction.isLiked());
   }
 
   @Transactional
-  public CourseResponse createCourse(CourseCreateRequest request/*, MultipartFile file*/) {
+  public CourseResponse createCourse(CourseCreateRequest request/* , MultipartFile file */) {
     Course course = courseMapper.toEntity(request);
 
-    /* String imageUrl;
-
-    if (file != null && !file.isEmpty()) {
-      String objectName = minioService.uploadFile(file);
-      imageUrl = minioService.getFileUrl(objectName);
-    } else {
-      imageUrl = courseImageProperties.getDefaultImageUrl();
-    }
-
-    course.setImageUrl(imageUrl); */
+    /*
+     * String imageUrl;
+     * 
+     * if (file != null && !file.isEmpty()) {
+     * String objectName = minioService.uploadFile(file);
+     * imageUrl = minioService.getFileUrl(objectName);
+     * } else {
+     * imageUrl = courseImageProperties.getDefaultImageUrl();
+     * }
+     * 
+     * course.setImageUrl(imageUrl);
+     */
 
     // Начальные данные для мат модели
     course.setViews(0);
@@ -88,32 +132,38 @@ public class CourseService {
   }
 
   @Transactional
-  public CourseResponse updateCourse(UUID courseId, CourseUpdateRequest request/*, MultipartFile file*/) {
-    Course updatedCourse = courseRepository.findById(courseId).orElseThrow(()
-      -> new CourseNotFoundException(courseId));
+  public CourseResponse updateCourse(UUID courseId, CourseUpdateRequest request/* , MultipartFile file */) {
+    Course updatedCourse = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException(courseId));
 
-    /*if (file != null && !file.isEmpty()) {
-      String imageUrl = minioService.getFileUrl(minioService.uploadFile(file));
-      updatedCourse.setImageUrl(imageUrl);
-    }*/
+    /*
+     * if (file != null && !file.isEmpty()) {
+     * String imageUrl = minioService.getFileUrl(minioService.uploadFile(file));
+     * updatedCourse.setImageUrl(imageUrl);
+     * }
+     */
 
-    if (request.title() != null) updatedCourse.setTitle(request.title());
-    if (request.description() != null) updatedCourse.setDescription(request.description());
-    if (request.levelEducation() != null) updatedCourse.setLevelEducation(request.levelEducation());
-    if (request.sphere() != null) updatedCourse.setSphere(request.sphere());
+    if (request.title() != null)
+      updatedCourse.setTitle(request.title());
+    if (request.description() != null)
+      updatedCourse.setDescription(request.description());
+    if (request.levelEducation() != null)
+      updatedCourse.setLevelEducation(request.levelEducation());
+    if (request.sphere() != null)
+      updatedCourse.setSphere(request.sphere());
 
     return courseMapper.toResponse(updatedCourse);
   }
 
   @Transactional
   public void deleteCourse(UUID courseId) {
-    Course course = courseRepository.findById(courseId).orElseThrow(()
-      -> new CourseNotFoundException(courseId));
+    Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException(courseId));
 
-    /*if (course.getImageUrl() != null) {
-      String filename = minioService.extractFilename(course.getImageUrl());
-      minioService.deleteFile(filename);
-    } */
+    /*
+     * if (course.getImageUrl() != null) {
+     * String filename = minioService.extractFilename(course.getImageUrl());
+     * minioService.deleteFile(filename);
+     * }
+     */
 
     courseRepository.deleteById(courseId);
   }
@@ -121,8 +171,7 @@ public class CourseService {
   @Transactional
   public void addReview(UUID courseId, UUID userId, int score) {
 
-    Course course = courseRepository.findById(courseId).orElseThrow(()
-      -> new CourseNotFoundException(courseId));
+    Course course = courseRepository.findById(courseId).orElseThrow(() -> new CourseNotFoundException(courseId));
 
     UserCourseInteraction interaction = userCourseInteractionRepository.findByUserIdAndCourseId(userId, courseId)
         .orElseGet(() -> {
@@ -135,7 +184,7 @@ public class CourseService {
     interaction.setRating(score);
 
     courseStatisticsService.updateStatistics(course);
-    recalculatePopularity(course);
+    // recalculatePopularity(course);
 
     courseRepository.save(course);
   }
@@ -143,27 +192,28 @@ public class CourseService {
   @Transactional
   public void addLike(UUID courseId, UUID userId) {
 
-    Course course = courseRepository.findById(courseId).orElseThrow(()
-      -> new CourseNotFoundException(courseId));
+    Course course = courseRepository.findById(courseId)
+        .orElseThrow(() -> new CourseNotFoundException(courseId));
 
     UserCourseInteraction interaction = userCourseInteractionRepository.findByUserIdAndCourseId(userId, courseId)
-      .orElseGet(() -> {
-        UserCourseInteraction i = new UserCourseInteraction();
-        i.setUserId(userId);
-        i.setCourseId(courseId);
-        return userCourseInteractionRepository.save(i);
-      });
+        .orElseGet(() -> {
+          UserCourseInteraction i = new UserCourseInteraction();
+          i.setUserId(userId);
+          i.setCourseId(courseId);
+          return userCourseInteractionRepository.save(i);
+        });
 
     if (!interaction.isLiked()) {
       interaction.setLiked(true);
+      course.setLikes(course.getLikes() + 1);
+    } else {
+      interaction.setLiked(false);
+      course.setLikes(course.getLikes() - 1);
     }
 
     courseStatisticsService.updateStatistics(course);
-    recalculatePopularity(course);
-  }
+    // recalculatePopularity(course);
 
-  private void recalculatePopularity(Course course) {
-    double popularity = popularityService.calculatePopularity(course);
-    course.setPopularity(popularity);
+    courseRepository.save(course);
   }
 }

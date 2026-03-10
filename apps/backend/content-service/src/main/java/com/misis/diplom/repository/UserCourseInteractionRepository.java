@@ -4,6 +4,7 @@ import com.misis.diplom.model.UserCourseInteraction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ public interface UserCourseInteractionRepository extends JpaRepository<UserCours
 
   Optional<UserCourseInteraction> findByUserIdAndCourseId(UUID userId, UUID courseId);
 
+  List<UserCourseInteraction> findAllByUserIdAndCourseIdIn(UUID userId, List<UUID> courseIds);
+
   long countByCourseIdAndViewedTrue(UUID courseId);
 
   long countByCourseIdAndLikedTrue(UUID courseId);
@@ -20,11 +23,11 @@ public interface UserCourseInteractionRepository extends JpaRepository<UserCours
   long countByCourseIdAndRatingIsNotNull(UUID courseId);
 
   @Query("""
-  select avg(i.rating)
-  from UserCourseInteraction i
-  where i.courseId = :courseId
-    and i.rating is not null
-  """)
+      select avg(i.rating)
+      from UserCourseInteraction i
+      where i.courseId = :courseId
+        and i.rating is not null
+      """)
   Double findAverageRatingByCourseId(UUID courseId);
 
 }

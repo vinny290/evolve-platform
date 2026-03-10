@@ -1,7 +1,7 @@
 "use client";
 
 import { apiClient } from "lib/apiClient";
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable, runInAction, observable } from "mobx";
 import { Course, LevelEducation } from "types/course";
 import API_ENDPOINTS from "utils/apiEndpoints";
 
@@ -23,6 +23,7 @@ export class CourseStore {
   size = 10;
   totalPages = 0;
 
+  // Поля для форм создания/редактирования
   title = "";
   description = "";
   isCreating = false;
@@ -33,10 +34,14 @@ export class CourseStore {
   isDeleting = false;
   isDeleteModalOpen = false;
 
+  // Реактивный Map для блокировки кнопок лайка (по id курса)
+  loadingLikes = observable.map<string, boolean>();
+
   constructor() {
     makeAutoObservable(this);
   }
 
+  // ========== Сеттеры для форм ==========
   setTitle(value: string) {
     this.title = value;
   }
@@ -53,6 +58,11 @@ export class CourseStore {
     this.sphere = value;
   }
 
+  setCourses(courses: Course[]) {
+    this.courses = courses;
+  }
+
+  // ========== Управление модалками ==========
   startCreate() {
     this.isEditing = false;
     this.title = "";
@@ -88,9 +98,9 @@ export class CourseStore {
     this.isDeleteModalOpen = false;
   }
 
+  // ========== Работа со списком курсов ==========
   async fetchCourses(page = 0) {
     this.isLoading = true;
-    this.error = null;
 
     try {
       const response = await apiClient.get<PageResponse<Course>>(
@@ -109,10 +119,6 @@ export class CourseStore {
         this.totalPages = response.data.totalPages;
         this.page = response.data.number;
       });
-    } catch (e: any) {
-      runInAction(() => {
-        this.error = e.response?.data?.message || "Ошибка загрузки курсов";
-      });
     } finally {
       runInAction(() => {
         this.isLoading = false;
@@ -120,13 +126,28 @@ export class CourseStore {
     }
   }
 
+  // ========== Получение одного курса ==========
   async getCourseById(id: string) {
     this.isLoading = true;
     this.error = null;
     try {
-      const response = await apiClient.get(`${API_ENDPOINTS.course}/${id}`);
+      const response = await apiClient.get<Course>(
+        `${API_ENDPOINTS.course}/${id}`,
+      );
+      const fetchedCourse = response.data;
+
       runInAction(() => {
-        this.course = response.data;
+        // Сохраняем курс в общий массив (для синхронизации с лайками)
+        const index = this.courses.findIndex((c) => c.id === id);
+        if (index !== -1) {
+          // Если курс уже есть в массиве — обновляем его
+          this.courses[index] = fetchedCourse;
+        } else {
+          // Если нет — добавляем
+          this.courses.push(fetchedCourse);
+        }
+        // Устанавливаем course как ссылку на объект из массива
+        this.course = this.courses.find((c) => c.id === id) || null;
       });
     } catch (e: any) {
       runInAction(() => {
@@ -139,6 +160,7 @@ export class CourseStore {
     }
   }
 
+  // ========== Создание курса ==========
   async createCourse() {
     if (!this.title || !this.description) return;
 
@@ -172,6 +194,7 @@ export class CourseStore {
     }
   }
 
+  // ========== Обновление курса ==========
   async updateCourse() {
     if (!this.course) return;
 
@@ -187,8 +210,17 @@ export class CourseStore {
           sphere: this.sphere,
         },
       );
+
       runInAction(() => {
-        this.course = response.data;
+        const updatedCourse = response.data;
+        // Обновляем в массиве
+        const index = this.courses.findIndex((c) => c.id === updatedCourse.id);
+        if (index !== -1) {
+          this.courses[index] = updatedCourse;
+        }
+        // Обновляем текущий курс (как ссылку на элемент массива)
+        this.course =
+          this.courses.find((c) => c.id === updatedCourse.id) || null;
         this.isEditModalOpen = false;
       });
     } catch (e: any) {
@@ -202,20 +234,26 @@ export class CourseStore {
     }
   }
 
+  // ========== Удаление курса ==========
   async deleteCourse() {
     if (!this.course) return;
 
     this.isLoading = true;
     this.error = null;
     try {
-      const response = await apiClient.delete<Course>(
-        `${API_ENDPOINTS.course}/${this.course.id}`,
-      );
+      await apiClient.delete(`${API_ENDPOINTS.course}/${this.course.id}`);
+
+      runInAction(() => {
+        // Удаляем из массива
+        this.courses = this.courses.filter((c) => c.id !== this.course?.id);
+        this.course = null;
+        this.isDeleteModalOpen = false;
+      });
 
       return true;
     } catch (e: any) {
       runInAction(() => {
-        this.error = e.response?.data?.message || "Ошибка обновления курса";
+        this.error = e.response?.data?.message || "Ошибка удаления курса";
       });
     } finally {
       runInAction(() => {
@@ -224,24 +262,49 @@ export class CourseStore {
     }
   }
 
+  // ========== Оптимистичный лайк (работает и в списке, и на детальной странице) ==========
   async courseLike(id: string) {
-    if (!this.course) return;
-    this.isLoading = true;
-    this.error = null;
+    if (this.loadingLikes.get(id)) return;
+
+    const index = this.courses.findIndex((c) => c.id === id);
+    if (index === -1) return;
+
+    const course = this.courses[index];
+    const oldIsLiked = course.isLiked;
+    const oldLikes = course.likes;
+    const newIsLiked = !oldIsLiked;
+    const newLikes = oldLikes + (newIsLiked ? 1 : -1);
+
+    runInAction(() => {
+      // Заменяем объект в массиве новым
+      this.courses[index] = { ...course, isLiked: newIsLiked, likes: newLikes };
+
+      // Если это текущий курс на детальной странице — обновляем ссылку
+      if (this.course?.id === id) {
+        this.course = this.courses[index];
+      }
+
+      this.loadingLikes.set(id, true);
+    });
 
     try {
-      const response = await apiClient.patch<Course>(
-        `${API_ENDPOINTS.course}/${id}/likes`,
-      );
-      console.log("response.data: ", response.data);
-      return response.data;
-    } catch (e: any) {
+      await apiClient.patch(`${API_ENDPOINTS.course}/${id}/likes`);
+    } catch (error: any) {
       runInAction(() => {
-        this.error = e.response?.data?.message || "Ошибка обновления курса";
+        // Откатываем изменения
+        this.courses[index] = {
+          ...course,
+          isLiked: oldIsLiked,
+          likes: oldLikes,
+        };
+        if (this.course?.id === id) {
+          this.course = this.courses[index];
+        }
+        this.error = error.response?.data?.message || "Ошибка при лайке курса";
       });
     } finally {
       runInAction(() => {
-        this.isLoading = false;
+        this.loadingLikes.set(id, false);
       });
     }
   }

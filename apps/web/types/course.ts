@@ -10,13 +10,19 @@ export const LevelEducationLabels: Record<LevelEducation, string> = {
   [LevelEducation.ADVANCED]: "Продвинутый",
 };
 
-export type Course = {
+export interface Course {
   id: string;
   title: string;
   description: string;
+  imageUrl?: string | null;
   levelEducation: LevelEducation;
   sphere?: string;
-  views?: number;
-  popularity?: number;
-  likes?: number;
-};
+
+  views: number;
+  likes: number;
+  ratingsCount: number;
+  averageScore: number;
+  popularity: number;
+
+  isLiked: boolean;
+}

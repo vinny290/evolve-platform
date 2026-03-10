@@ -1,7 +1,7 @@
 "use client";
 
 import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { useRootStore } from "app/stores";
@@ -20,6 +20,14 @@ const CoursesPage = observer(() => {
   useEffect(() => {
     courseStore.fetchCourses();
   }, []);
+
+  if (courseStore.isLoading || !courseStore.courses) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -45,12 +53,7 @@ const CoursesPage = observer(() => {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10 py-10">
           {courseStore.courses.map((course) => (
             <Link key={course.id} href={`courses/${course.id}`}>
-              <CourseCard
-                id={course.id}
-                title={course.title}
-                description={course.description}
-                levelEducation={course.levelEducation}
-              />
+              <CourseCard course={course} />
             </Link>
           ))}
         </div>
@@ -60,12 +63,7 @@ const CoursesPage = observer(() => {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 py-10">
           {courseStore.courses.map((course) => (
             <Link key={course.id} href={`courses/${course.id}`}>
-              <CourseCard
-                id={course.id}
-                title={course.title}
-                description={course.description}
-                levelEducation={course.levelEducation}
-              />
+              <CourseCard course={course} />
             </Link>
           ))}
         </div>
